@@ -57,7 +57,7 @@ class searcher:
         for r in result[:self.top_k]:   # 返回top_k结果
             i = i + 1
             doc = self.isearcher.doc(r.doc)
-            print("---------------")
+            print("----------------")
             print(str(i) + ':\t score:' + str(r.score) + '\t DOCNO:' + str(doc.get('doc_no')) + '\t DOCTYPE:' + str(doc.get('doc_type')) + '\t TEXTTYPE:' + str(doc.get('text_type')))
             print('text: ' + doc.get('text'))   # 需要对长文本做summary snippets提取
 
