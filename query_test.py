@@ -1,4 +1,5 @@
 import os
+import time
 import lucene
 from java.nio.file import Paths
 
@@ -43,21 +44,25 @@ class searcher:
         '''Run a query with a given field and parameter'''
         self.init_searcher()
         arg = self.format_query(field, param)
-        qp = QueryParser('id', self.analyzer)   # 实例化一个QueryParser对象，它描述查询请求，解析Query查询语句
+        qp = QueryParser('text', self.analyzer)   # 实例化一个QueryParser对象，它描述查询请求，解析Query查询语句
         query = qp.parse(str(arg))  # 以查询语句为参数
         print('###NEW QUERY: field=' + field + '; param=' + param + ' ###')
+        query_start_time = time.time()
         # ***implement the document relevance score function by yourself***
         result = self.isearcher.search(query, 100).scoreDocs
+        query_end_time = time.time()
+        search_time = query_end_time - query_start_time
+        print("Time taken = " + str(search_time) + "\n")
         return result
 
     def print_results(self, result):
         '''Display results in organized way'''
-        print('Results size: ', len(result))
+        # print('Results size: ', len(result))
         i = 0
         for r in result[:self.top_k]:   # 返回top_k结果
             i = i + 1
             doc = self.isearcher.doc(r.doc)
-            print("----------------")
+            print("---------------")
             print(str(i) + ':\t score:' + str(r.score) + '\t DOCNO:' + str(doc.get('doc_no')) + '\t DOCTYPE:' + str(doc.get('doc_type')) + '\t TEXTTYPE:' + str(doc.get('text_type')))
             print('text: ' + doc.get('text'))   # 需要对长文本做summary snippets提取
 
