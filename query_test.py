@@ -6,8 +6,30 @@ from java.nio.file import Paths
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.index import IndexWriter, IndexWriterConfig, DirectoryReader, FieldInfo, IndexOptions,MultiReader, Term
-from org.apache.lucene.search import IndexSearcher
+from org.apache.lucene.search import IndexSearcher, Explanation
 from org.apache.lucene.queryparser.classic import QueryParser, MultiFieldQueryParser
+# import similarities
+from org.apache.pylucene.search.similarities import PythonClassicSimilarity
+from org.apache.lucene.search.similarities import BM25Similarity
+from org.apache.lucene.search.similarities import TFIDFSimilarity
+
+
+# ***implement the document relevance score function by yourself***
+class SimpleSimilarity(PythonClassicSimilarity):
+    def lengthNorm(self, numTerms):
+        return 1.0
+
+    def tf(self, freq):
+        return freq
+
+    def sloppyFreq(self, distance):
+        return 2.0
+
+    def idf(self, docFreq, numDocs):
+        return 1.0
+
+    def idfExplain(self, collectionStats, termStats):
+        return Explanation.match(1.0, "inexplicable", [])
 
 
 class searcher:
@@ -23,6 +45,9 @@ class searcher:
     def init_searcher(self):
         '''Initializes the lucene searcher'''
         self.isearcher = IndexSearcher(DirectoryReader.open(self.store))    # 实例化一个IndexSearcher对象，它的参数为SimpleFSDirectory对象
+        self.isearcher.setSimilarity(SimpleSimilarity())    # index和search的similarity应保持一致
+        # self.isearcher.setSimilarity(BM25Similarity(1.2, 0.75))     # set BM25 as the similarity metric, k=1.2, b=0.75
+        # self.isearcher.setSimilarity(TFIDFSimilarity())
 
     def format_query(self, fields, params):
         '''Format query to string "field:param" '''
@@ -49,22 +74,24 @@ class searcher:
         print('###NEW QUERY: field=' + field + '; param=' + param + ' ###')
         query_start_time = time.time()
         # ***implement the document relevance score function by yourself***
+        explaination = self.isearcher.explain(query, 0)
+        print("explaination:", explaination)
         result = self.isearcher.search(query, 100).scoreDocs
         query_end_time = time.time()
         search_time = query_end_time - query_start_time
-        print("Time taken = " + str(search_time) + "\n")
+        print("Time taken = " + str(search_time) + "s\n")
         return result
 
     def print_results(self, result):
         '''Display results in organized way'''
         # print('Results size: ', len(result))
         i = 0
-        for r in result[:self.top_k]:   # 返回top_k结果
+        for r in result[:self.top_k]:   # 返回1~top_k结果
             i = i + 1
             doc = self.isearcher.doc(r.doc)
             print("---------------")
             print(str(i) + ':\t score:' + str(r.score) + '\t DOCNO:' + str(doc.get('doc_no')) + '\t DOCTYPE:' + str(doc.get('doc_type')) + '\t TEXTTYPE:' + str(doc.get('text_type')))
-            print('text: ' + doc.get('text'))   # 需要对长文本做summary snippets提取
+            # print('text: ' + doc.get('text'))   # 需要对长文本做summary snippets提取
 
 
 if __name__ == "__main__":

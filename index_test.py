@@ -8,6 +8,29 @@ from org.apache.lucene.analysis.core import WhitespaceAnalyzer
 from org.apache.lucene.document import Document, Field, TextField, FieldType
 from org.apache.lucene.index import IndexWriter, IndexWriterConfig, DirectoryReader, FieldInfo, IndexOptions,MultiReader, Term
 from org.apache.lucene.store import SimpleFSDirectory
+# import similarities
+from org.apache.pylucene.search.similarities import PythonClassicSimilarity
+from org.apache.lucene.search.similarities import BM25Similarity
+from org.apache.lucene.search.similarities import TFIDFSimilarity
+from org.apache.lucene.search import Explanation
+
+
+# ***implement the document relevance score function by yourself***
+class SimpleSimilarity(PythonClassicSimilarity):
+    def lengthNorm(self, numTerms):
+        return 1.0
+
+    def tf(self, freq):
+        return freq
+
+    def sloppyFreq(self, distance):
+        return 2.0
+
+    def idf(self, docFreq, numDocs):
+        return 1.0
+
+    def idfExplain(self, collectionStats, termStats):
+        return Explanation.match(1.0, "inexplicable", [])
 
 
 class _indexer:
@@ -22,13 +45,15 @@ class _indexer:
 
     def init_writer(self):
         '''Initializes the writer, the storage directory, and the configuration'''
-        storeDir = self.writer_path
-        self.store = SimpleFSDirectory(Paths.get(storeDir))     # 实例化一个SimpleFSDirectory对象，将索引保存至本地文件之中
+        self.store = SimpleFSDirectory(Paths.get(self.writer_path))     # 实例化一个SimpleFSDirectory对象，将索引保存至本地文件之中
         config = IndexWriterConfig(self.analyzer)
+        config.setSimilarity(SimpleSimilarity())    # index和search的similarity应保持一致
+        # config.setSimilarity(BM25Similarity(1.2, 0.75))   # BM25貌似就是默认方式？
+        # config.setSimilarity(TFIDFSimilarity())
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
         # Writer
         self.writer = IndexWriter(self.store, config)   # 在Directory对象上实例化一个IndexWriter对象
-        print(self.writer.getInfoStream())
+        # print(self.writer.getInfoStream())
         self.writer.commit()
 
     def init_fields(self):
@@ -80,7 +105,7 @@ class _indexer:
         '''Get an array of array with 4 fields
         Write data into the lucene writer'''
         # Idea was to commit regularly(every 10 docs) but commit are computationaly expensive
-        printo = True
+        # printo = True
         self.init_writer()
         for d in self.data:
             # Insert array fields into lucene fields
@@ -94,19 +119,11 @@ class _indexer:
             doc.add(f1)
             doc.add(f2)
             doc.add(f3)
-            # Print and write the documents into the lucene index
-            printo = self.print_doc(doc, printo)
+            # Write the documents into the lucene index
             self.write_doc(doc)
         # Close writer
         self.get_fields_name()
         self.close_writer()
-
-    def print_doc(self, doc, printo):
-        '''Print and return document'''
-        if printo == True:
-            print(doc)
-        printo = False
-        return printo
 
     def get_fields_name(self):
         '''Print and return fields names'''
@@ -125,7 +142,7 @@ def xml_crawling(filename):
     doc_type = root.xpath('//DOCTYPE')[0].text.strip()
     txt_type = root.xpath('//TXTTYPE')[0].text.strip()
     # text = root.xpath('//TEXT')[0].text.replace('\n', '')   # .replace('\n', '').replace('\r', '')
-    text = root.xpath('//TEXT')[0].text # 为了print整洁没必要去除换行符
+    text = root.xpath('//TEXT')[0].text     # 为了print整洁没必要去除换行符
     # ***存在text为空的文件情况，可能对后面的处理过程产生影响，这里mark一下***
     # print(text)
 
@@ -152,7 +169,7 @@ def data_reader(dataset_path, datas):
                 os.remove(file_name + '.bak')
             else:
                 data = xml_crawling(file_name)
-            print(data)
+            # print(data)
             datas.append(data)
 
 
