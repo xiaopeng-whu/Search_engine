@@ -1,33 +1,31 @@
 import os
 import lxml.etree as etree
 import lucene
+import math
 from java.nio.file import Paths
 
-from org.apache.lucene.analysis.standard import StandardAnalyzer, StandardTokenizer
-from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.document import Document, Field, TextField, FieldType
 from org.apache.lucene.index import IndexWriter, IndexWriterConfig, DirectoryReader, FieldInfo, IndexOptions,MultiReader, Term
 from org.apache.lucene.store import SimpleFSDirectory
-# import similarities
 from org.apache.pylucene.search.similarities import PythonClassicSimilarity
 from org.apache.lucene.search.similarities import BM25Similarity
-from org.apache.lucene.search.similarities import TFIDFSimilarity
 from org.apache.lucene.search import Explanation
 
 
 # ***implement the document relevance score function by yourself***
 class SimpleSimilarity(PythonClassicSimilarity):
     def lengthNorm(self, numTerms):
-        return 1.0
+        return math.sqrt(numTerms)
 
     def tf(self, freq):
-        return freq
+        return math.sqrt(freq)
 
-    def sloppyFreq(self, distance):
-        return 2.0
+    # def sloppyFreq(self, distance):
+    #     return 2.0
 
     def idf(self, docFreq, numDocs):
-        return 1.0
+        return math.log((numDocs+1)/(docFreq+1))+1
 
     def idfExplain(self, collectionStats, termStats):
         return Explanation.match(1.0, "inexplicable", [])
@@ -48,8 +46,7 @@ class _indexer:
         self.store = SimpleFSDirectory(Paths.get(self.writer_path))     # 实例化一个SimpleFSDirectory对象，将索引保存至本地文件之中
         config = IndexWriterConfig(self.analyzer)
         config.setSimilarity(SimpleSimilarity())    # index和search的similarity应保持一致
-        # config.setSimilarity(BM25Similarity(1.2, 0.75))   # BM25貌似就是默认方式？
-        # config.setSimilarity(TFIDFSimilarity())
+        # config.setSimilarity(BM25Similarity(1.2, 0.75))   # BM25是默认方式
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
         # Writer
         self.writer = IndexWriter(self.store, config)   # 在Directory对象上实例化一个IndexWriter对象
@@ -131,7 +128,7 @@ class _indexer:
         return self.writer.getFieldNames()
 
     def get_info(self):
-        ''''''
+        '''Return analyzer and SimpleFSDirectory object'''
         return [self.analyzer, self.store]
 
 
@@ -143,7 +140,6 @@ def xml_crawling(filename):
     txt_type = root.xpath('//TXTTYPE')[0].text.strip()
     # text = root.xpath('//TEXT')[0].text.replace('\n', '')   # .replace('\n', '').replace('\r', '')
     text = root.xpath('//TEXT')[0].text     # 为了print整洁没必要去除换行符
-    # ***存在text为空的文件情况，可能对后面的处理过程产生影响，这里mark一下***
     # print(text)
 
     return [doc_no, doc_type, txt_type, text]
@@ -161,7 +157,7 @@ def convert_character(filename):
 def data_reader(dataset_path, datas):
     for filepath, dirnames, filenames in os.walk(dataset_path):
         for filename in filenames:
-            file_name = os.path.join(filepath, filename)  # https://blog.csdn.net/qq_39721240/article/details/90704223
+            file_name = os.path.join(filepath, filename)
             # print(file_name)
             convert_character(file_name)
             if os.path.exists(file_name + '.bak'):
