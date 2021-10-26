@@ -13,7 +13,7 @@ from org.apache.pylucene.search.similarities import PythonClassicSimilarity
 from org.apache.lucene.search.similarities import BM25Similarity
 
 
-# ***implement the document relevance score function by yourself***
+'''implement the document relevance score function'''
 class SimpleSimilarity(PythonClassicSimilarity):
     def lengthNorm(self, numTerms):
         return math.sqrt(numTerms)
@@ -54,14 +54,10 @@ class searcher:
         print("query:", query)  # 如： text:happy
         return query
 
-    def query(self, field, param, option):
-        if option == "simple":
-            print("#EXECUTING SIMPLE QUERY#")
-            result = self.run_query(field, param)
-            self.print_results(result)
-        # elif option == "expansion":
-        #     print("#EXECUTING EXPANDED QUERY#")
-        #     result2 = self.expand(field, param)
+    def query(self, field, param):
+        print("#EXECUTING SIMPLE QUERY#")
+        result = self.run_query(field, param)
+        self.print_results(result)
 
     def run_query(self, field, param):
         '''Run a query with a given field and parameter'''
@@ -81,7 +77,6 @@ class searcher:
 
     def print_results(self, result):
         '''Display results in organized way'''
-        # print('Results size: ', len(result))
         i = 0
         for r in result[:self.top_k]:   # 返回1~top_k结果
             i = i + 1
@@ -107,4 +102,13 @@ if __name__ == "__main__":
     info = [StandardAnalyzer(), SimpleFSDirectory(Paths.get(path))]
     searcher_class = searcher(path, info, top_k=10)
     # Search in text as simple query
-    searcher_class.query('text', 'new york city', 'simple')
+    # searcher_class.query('text', 'new york city', 'simple')
+    running = True
+    while running:
+        query_keyword = input('# search ')
+        if query_keyword == 'exit!!!':
+            running = False
+        else:
+            # print(list(search(query_string)))
+            # print(query_keyword)
+            searcher_class.query('text', query_keyword)
