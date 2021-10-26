@@ -32,14 +32,13 @@ class SimpleSimilarity(PythonClassicSimilarity):
 
 
 class searcher:
-    def __init__(self, path, info, top_k):
+    def __init__(self, path, info):
         '''Initializes the searcher class'''
         self.path = path
         self.isearcher = None
         self.store = info[1]
         self.analyzer = info[0]
         self.init_searcher()
-        self.top_k = top_k
 
     def init_searcher(self):
         '''Initializes the lucene searcher'''
@@ -54,10 +53,10 @@ class searcher:
         print("query:", query)  # 如： text:happy
         return query
 
-    def query(self, field, param):
+    def query(self, field, param, hit):
         print("#EXECUTING SIMPLE QUERY#")
         result = self.run_query(field, param)
-        self.print_results(result)
+        self.print_results(result, hit)
 
     def run_query(self, field, param):
         '''Run a query with a given field and parameter'''
@@ -75,10 +74,10 @@ class searcher:
         print("Time taken = " + str(search_time) + "s\n")
         return result
 
-    def print_results(self, result):
+    def print_results(self, result, hit):
         '''Display results in organized way'''
         i = 0
-        for r in result[:self.top_k]:   # 返回1~top_k结果
+        for r in result[:hit]:   # 返回1~top_k结果
             i = i + 1
             doc = self.isearcher.doc(r.doc)
             print("----------------------------------------------------------------------------------------------------")
@@ -100,15 +99,28 @@ if __name__ == "__main__":
     # searcher model
     path = os.path.expanduser('~/Search_engine/index1')
     info = [StandardAnalyzer(), SimpleFSDirectory(Paths.get(path))]
-    searcher_class = searcher(path, info, top_k=10)
+    searcher_class = searcher(path, info)
     # Search in text as simple query
     # searcher_class.query('text', 'new york city', 'simple')
     running = True
     while running:
-        query_keyword = input('# search ')
-        if query_keyword == 'exit!!!':
-            running = False
-        else:
-            # print(list(search(query_string)))
-            # print(query_keyword)
-            searcher_class.query('text', query_keyword)
+        print("query example: search --hits=27 new york")
+        query_statement = input('#')
+        if query_statement == 'exit!!!':
+            break
+        if ' ' in query_statement:
+            query_split = query_statement.split(' ', 1)
+            operation = query_split[0]
+            if operation != 'search':
+                print("Wrong operation, please input again.")
+                continue
+            query_split2 = query_split[1]
+            if ' ' in query_split2:
+                query_split3 = query_split2.split(' ', 1)
+                hits = query_split3[0]
+                if hits[:7] != '--hits=':
+                    print("Wrong arguments, please input again.")
+                    continue
+                hit = int(hits[7:])
+                keywords = query_split3[1]
+                searcher_class.query('text', keywords, hit)
