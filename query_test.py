@@ -121,6 +121,12 @@ if __name__ == "__main__":
                 if hits[:7] != '--hits=':
                     print("Wrong arguments, please input again.")
                     continue
-                hit = int(hits[7:])
+                hit = hits[7:]
+                if not hit.isdigit():
+                    print("Wrong arguments, please input again.")
+                    continue
                 keywords = query_split3[1]
-                searcher_class.query('text', keywords, hit)
+                searcher_class.query('text', keywords, int(hit))
+        else:
+            print("Wrong input format, please input again.")
+            continue
